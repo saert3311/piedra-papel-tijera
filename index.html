@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cachipun contra la maquina</title>
+    <!-- Como era algo sencillo lo hice todo inline xD -->
+    <style>
+        body{
+            font-family: sans-serif;
+            margin: 0;
+        }
+        h1{
+            text-align: center;
+        }
+        #overlay {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 100vw;
+            min-height: 100vh;
+        }
+        .game{
+            background-color:aliceblue;
+            border-radius: 5px;
+            padding: 1em;
+        }
+        button.jugada{
+            font-size: 3em;
+            padding: 1em;
+        }
+        #start_options {
+            text-align: center;
+            margin-bottom: 1em;
+        }
+        #jugar {
+            display: none;
+        }
+        .historial{
+            display: block;
+            position: absolute;
+            bottom: 10px;
+            right: 10px;  
+        }
+        #resultados {
+            margin-top: 1em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay">
+        <div class="game">
+            <h1>Cachipun contra la maquina</h1>
+            <div id="start_options">
+                <h5>Cuantas veces quieres jugar?</h5>
+                <input type="number" id="jugadas"><button id="iniciar_juego">Jugar</button>
+            </div>
+            <div id="jugar">
+                <button class="jugada" opcion="piedra">✊</button>
+                <button class="jugada" opcion="papel">🤚</button>
+                <button class="jugada" opcion="tijera">✌️</button>
+                <div id="resultados">
+                    <h4>Juego <span id="nro_juego">0</span> de <span id="juegos_totales">0</span></h4>
+                    <div id="resumen"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="historial">
+        Victorias: <span id="victory_historial">0</span> Derrotas: <span id="defeat_historial">0</span>
+    </div>
+    <script>
+
+        //funcion para jugar
+        const jugar = {
+            'piedra': function(jugada){
+                if (jugada === 'tijera') return "ganador"
+                else if (jugada === "papel") return "perdedor"
+                else return "empate"
+            },
+            'papel': function(jugada){
+                if (jugada === 'piedra') return "ganador"
+                else if (jugada === "tijera") return "perdedor"
+                else return "empate"
+            },
+            'tijera': function(jugada){
+                if (jugada === 'papel') return "ganador"
+                else if (jugada === "piedra") return "perdedor"
+                else return "empate"
+            }
+        }
+
+        //funcion para decidir que jugada hace el computador
+        function jugadaComputador() {
+            let jugadas = {
+                1:'piedra',
+                2:'papel',
+                3:'tijera'
+            }
+            let eleccion = Math.floor(Math.random() * ((3 - 1) + 1)) + 1
+            return jugadas[eleccion]
+        }
+
+        //al terminar la cantidad de turnos se declara el ganador
+        function declararGanador(jugadas) {
+            let victorias = 0
+            let derrotas = 0
+            let resultado = {}
+            jugadas.map(function(jugada){
+                if (jugada === 'ganador') victorias++
+                else if (jugada === 'perdedor') derrotas ++ 
+            })
+
+            if (victorias > derrotas) {
+                resultado.mensaje = `Felicidades has ganado!\nVictorias: ${victorias} Derrotas: ${derrotas}`
+                resultado.final = 'Victoria'
+            } else if (victorias < derrotas) {
+                resultado.mensaje = `Has perdido!\nVictorias: ${victorias} Derrotas: ${derrotas}`
+                resultado.final = 'Derrota'
+            }
+            else {
+                resultado.mensaje = `Han empatado!\nVictorias: ${victorias} Derrotas: ${derrotas}`
+                resultado.final = 'Empate'
+            } 
+            return resultado
+        }
+
+        //variables iniciales 
+        var resultados = []
+        var jugadas = 0
+
+        //meter elementos en variables
+        let boton_inicio = document.getElementById('iniciar_juego')
+        let input_jugadas = document.getElementById('jugadas')
+        let botones_juego = document.getElementById('jugar')
+        let resumen_juegos = document.getElementById('resultados')
+        let start_options = document.getElementById('start_options')
+        let historial_victorias = document.getElementById('victory_historial')
+        let historial_derrotas = document.getElementById('defeat_historial')
+        let juego_actual = document.getElementById('nro_juego')
+        let juegos_totales = document.getElementById('juegos_totales')
+        const elegir_jugada = document.querySelectorAll('.jugada');
+        let resumen = document.getElementById('resumen')
+        let estamos_jugando = false
+        let string_historial = {}
+        let historial_juegos = {
+            victorias:0,
+            derrotas:0
+        }
+
+        //verificar si tengo juegos anteriores meterlos en variables y ponerlos en el html
+
+        if (localStorage.getItem("historial") !== null) {
+            string_historial = JSON.parse(localStorage.getItem('historial'));
+            historial_juegos.victorias = parseInt(string_historial['victorias'])
+            historial_juegos.derrotas =  parseInt(string_historial['derrotas'])
+            historial_victorias.innerHTML = historial_juegos.victorias
+            historial_derrotas.innerHTML = historial_juegos.derrotas
+        }
+
+        //logica del juego
+
+        //inicio del juego
+        boton_inicio.addEventListener('click', () => {
+            jugadas = input_jugadas.value
+            if (jugadas < 1) {
+                alert('No puedes tener menos de 1 jugada')
+                return
+            }
+            botones_juego.style.display = 'block'
+            start_options.style.display = 'none'
+            estamos_jugando = true
+            juego_actual.innerHTML = 1
+            juegos_totales.innerHTML = jugadas
+
+        })
+
+        //procesar jugadas
+        elegir_jugada.forEach(jugada => {
+            jugada.addEventListener('click', function handleClick(event) {
+                if (estamos_jugando == false) return alert('No estamos jugando en este momento')
+
+                let mi_jugada = this.getAttribute('opcion')
+                resultado_partida = jugar[mi_jugada](jugadaComputador())
+
+                resultados.push(resultado_partida)
+
+                //cuando completamos las jugadas declaramos el ganador
+                if (resultados.length == jugadas) {
+                    let declaracion = declararGanador(resultados)
+
+                    if (declaracion.final == 'Victoria') {
+                        historial_juegos.victorias++
+
+                    }else if (declaracion.final == 'Derrota') {
+                       historial_juegos.derrotas++
+                    }
+
+                    //guardamos valores para el historial
+                    historial_victorias.innerHTML = historial_juegos.victorias
+                    historial_derrotas.innerHTML = historial_juegos.derrotas
+
+                    localStorage.setItem('historial', JSON.stringify(historial_juegos))
+
+                    alert(declaracion.mensaje)
+
+                    //reiniciamos valores para el siguiente juego
+                    botones_juego.style.display = 'none'
+                    start_options.style.display = 'block'
+                    estamos_jugando = false
+                    resultados = []
+                    jugadas = 0
+                    resumen.innerHTML = ''
+                    input_jugadas.value = ''
+                    return
+                    }
+
+                string_resultados = ''
+                alert(resultado_partida)
+                resultados.map(resultado => {
+                    if (resultado == 'ganador') {
+                        string_resultados += ' ✅'
+                    } else if (resultado == 'perdedor') {
+                        string_resultados += ' ⛔'
+                    }else {
+                        string_resultados += ' 🟡'
+                    }
+                })
+                resumen.innerHTML = string_resultados
+                juego_actual.innerHTML = resultados.length + 1
+
+            });
+        });
+
+        //Ok como que si me extendi bastante pero una cosa llevo a la otra probando cosas que veia en youtube xD
+    </script>
+</body>
+</html>
